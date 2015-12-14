@@ -14,7 +14,24 @@ def open_listed_fd(port):
     return listen_fd
 
 def respone_clients(fd_pool, clients):
-    '''Respone clients'''
+    '''
+    Respone clients by default protocol.
+    Parameter:
+        fd_pool: list of file descriptor, maybe change this.
+        clients: list of object of the class Client, maybe change this.
+    Return:
+        None.
+    Default protocol:
+        protocol - the first word of every message.
+        send by client:
+            0: show all clients information.
+            1: sendto message to all clients.
+            2: name this client by change client.name.
+        send by server:
+            0: command work ok.
+            1: command work false.
+            2: unkown protocol world.
+    '''
     for client in clients:
         if client.read_status == False:
             continue
@@ -23,37 +40,37 @@ def respone_clients(fd_pool, clients):
 
         # End breaken fd
         if len(command) == 0:
+            conn_fd.close()
             fd_pool.remove(conn_fd)
             clients.remove(client)
             continue
-        # Echo
-        print command
 
-        # Respone command request
-        if 'show' in command:
+        # Get protocol word
+        str_list = command.split(' ', 1)
+        ptl = str_list[0]
+        ptl = ptl[0]    #Delete '\n'
+        print ptl
+        # Respone command by protocol
+        if ptl == '0':
             # Show client online
-            conn_fd.sendall(''.join(clt.name
-                            + ' ' + str(clt.id) + '\n' for clt in clients))
-        elif 'sendto' in command:
-            # Send message to a client by id
-            str_list = command.split(' ', 2)
-            try:
-                clt_id = int(str_list[1])
-            except ValueError:
-                conn_fd.sendall('Wrong id!')
-                continue
+            name_list = []
             for clt in clients:
-                if clt_id == clt.id:
-                    message = str(client.id) + ' ' + str_list[-1]
-                    clt.fd.send(message)
-                    continue
-        elif 'name' in command:
-            # Set client name
+                name_list.append(clt.name + ' ' + '\n')
+            message = '0 ' + ''.join(name_list)
+            conn_fd.sendall(message)
+        elif ptl == '1':
+            # Send message to all clients
+            for clt in clients:
+                if clt != client:   #Do not send to self
+                    message = '0 ' + client.name + ':' + str_list[-1]
+                    clt.fd.sendall(message)
+        elif ptl == '2':
+            # Name client
             index = command.find(' ')
             # Delete '\n' in name
             client.name = command[index + 1:-1]
         else:
-            conn_fd.sendall('Wrong command!')
+            conn_fd.sendall('2')
 
         client.read_status = False
 
@@ -75,8 +92,6 @@ def main():
     listen_fd = open_listed_fd(2233)
     fd_pool.append(listen_fd)
 
-    # Start respone by thread
-    # thread.start_new_thread(respone_massage, ())
     # Wait for connected
     while True:
         ready_fds, [], [] = select.select(fd_pool, [], [])
@@ -84,10 +99,10 @@ def main():
         if listen_fd in ready_fds:
             conn_fd, addr = listen_fd.accept()
 
-            client = Client()
+            client = Client()   #Add client information
             client.addr = addr
             client.fd = conn_fd
-            client.id = conn_fd.fileno()
+            # client.id = conn_fd.fileno()
             clients.append(client)
 
             print 'connect', addr
