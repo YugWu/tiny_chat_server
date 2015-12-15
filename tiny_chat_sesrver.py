@@ -55,7 +55,7 @@ def respone_clients(fd_pool, clients):
             # Show client online
             name_list = []
             for clt in clients:
-                name_list.append(clt.name + ' ' + '\n')
+                name_list.append(clt.name + ' ')
             message = '0 ' + ''.join(name_list)
             conn_fd.sendall(message)
         elif ptl == '1':
