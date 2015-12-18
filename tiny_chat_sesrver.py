@@ -27,10 +27,6 @@ def respone_clients(fd_pool, clients):
             0: show all clients information.
             1: sendto message to all clients.
             2: name this client by change client.name.
-        send by server:
-            0: command work ok.
-            1: command work false.
-            2: unkown protocol world.
     '''
     for client in clients:
         if client.read_status == False:
@@ -56,13 +52,13 @@ def respone_clients(fd_pool, clients):
             name_list = []
             for clt in clients:
                 name_list.append(clt.name + ' ')
-            message = '0 ' + ''.join(name_list)
+            message = ''.join(name_list)
             conn_fd.sendall(message)
         elif ptl == '1':
             # Send message to all clients
             for clt in clients:
                 if clt != client:   #Do not send to self
-                    message = '0 ' + client.name + ':' + str_list[-1]
+                    message = client.name + ' ' + str_list[-1]
                     clt.fd.sendall(message)
         elif ptl == '2':
             # Name client
